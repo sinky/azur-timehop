@@ -117,7 +117,6 @@ function azur_timehop_shortcode() {
 add_shortcode('azur-timehop', 'azur_timehop_shortcode');
 
 
-
 //
 // Cron und Mailversand
 //
@@ -137,9 +136,12 @@ add_filter( 'cron_schedules', 'timehop_add_intervals');
 register_activation_hook(__FILE__, 'timehop_activation');
 function timehop_activation() {
 	// WP Cron aktivieren
-	if (! wp_next_scheduled ( 'timehop_monthly' )) {
-		wp_schedule_event(time(), 'monthly', 'timehop_monthly');
-	}
+	if( ! wp_next_scheduled ( 'timehop_monthly' ) ) {
+		$startTime = new DateTime('now', new DateTimeZone('Europe/Berlin'));
+		$startTime->modify('+1 day');
+		$startTime->setTime(5, 0, 0);
+        wp_schedule_event( $startTime->getTimestamp(), 'daily', 'timehop_monthly');
+    }
 }
 
 // Plugin Deaktivierung
@@ -149,15 +151,20 @@ function timehop_deactivation() {
 	wp_clear_scheduled_hook('timehop_monthly');
 }
 
+function timehop_monthly(){
+ 	if ('1' == date('D')) {
+		timehop_sendmail();
+	}
+}
+
 // Aktion zum WP-Cron registrieren
 if($azur_timehop_config['mail_send_active']) {
-	add_action('timehop_monthly', 'timehop_sendmail');
+	add_action('timehop_monthly', 'timehop_monthly');
 }
 
 // HTML Output per Mail versenden
 function timehop_sendmail() {
-	global $azur_timehop_config;
-
+ 	global $azur_timehop_config;
 	$mail_message = "<html><body>";
 	$mail_message .= timehop_output();
 	$mail_message .= "</body></html>";
@@ -168,7 +175,7 @@ function timehop_sendmail() {
 	
 	$mail_subject = $azur_timehop_config['mail_subject_prefix']." - ".$azur_timehop_config['localized_month'][date("n")];
 
-	mail($azur_timehop_config['mail_recipient'], $mail_subject, $mail_message, $mail_headers);
+	$res = wp_mail($azur_timehop_config['mail_recipient'], $mail_subject, $mail_message, $mail_headers);
 }
 
 
