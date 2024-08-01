@@ -152,7 +152,7 @@ function timehop_deactivation() {
 }
 
 function timehop_monthly(){
- 	if ('1' == date('D')) {
+ 	if ('1' == date('j')) {
 		timehop_sendmail();
 	}
 }
